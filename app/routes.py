@@ -1,6 +1,12 @@
 from flask import Blueprint, request, jsonify
 from app.models.user import User
 from app import db
+from datetime import datetime, timedelta
+import jwt
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -24,12 +30,28 @@ def login():
         Raises:
             KeyError: If the input JSON does not contain 'username' or 'password'.
     """
-    data = request.get_json()
-    user = User.query.filter_by(username=data['username']).first()
-    if user and user.check_password(data['password']):
-        # REMEMBER ARNAV Add JWT token generation here later
-        return jsonify({"message": "Login successful"}), 200
-    return jsonify({"message": "Invalid username or password"}), 401
+    try:
+        data = request.get_json()
+        logger.info(f"Login attempt for username: {data.get('username')}")
+
+        user = User.query.filter_by(username=data['username']).first()
+        if user and user.check_password(data['password']):
+            token = jwt.encode({
+                'user_id': user.id,
+                'username': user.username,
+                'exp': datetime.utcnow() + timedelta(hours=24)
+            }, os.getenv('SECRET_KEY'), algorithm='HS256')
+            logger.info(f"Successful login for user: {user.username}")
+            return jsonify({"message": "Login successful"}), 200
+
+        logger.warning(f"Failed login attempt for username: {data.get('username')}")
+        return jsonify({"message": "Invalid username or password"}), 401
+    except KeyError as e:
+        logger.error(f"Login attempt failed due to missing field: {str(e)}")
+        return jsonify({"message": "Missing required fields"}), 400
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}")
+        return jsonify({"message": "An unexpected error occurred"}), 500
 
 
 @auth_bp.route('/create-account', methods=['POST'])
@@ -51,18 +73,30 @@ def create_account():
             KeyError: If the input JSON does not contain 'username' or 'password'.
             sqlalchemy.exc.IntegrityError: If the username already exists in the database.
     """
-    data = request.get_json()
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({"message": "Username already exists"}), 400
+    try:
+        data = request.get_json()
+        logger.info(f"Account creation attempt for username: {data.get('username')}")
 
-    user = User()
-    user.username = data['username']
-    user.set_password(data['password'])
+        if User.query.filter_by(username=data['username']).first():
+            logger.warning(f"Account creation failed - username already exists: {data['username']}")
+            return jsonify({"message": "Username already exists"}), 400
 
-    db.session.add(user)
-    db.session.commit()
+        user = User()
+        user.username = data['username']
+        user.set_password(data['password'])
 
-    return jsonify({"message": "Account created successfully"}), 201
+        db.session.add(user)
+        db.session.commit()
+
+        logger.info(f"Account created successfully for username: {user.username}")
+        return jsonify({"message": "Account created successfully"}), 201
+    except KeyError as e:
+        logger.error(f"Account creation failed due to missing field: {str(e)}")
+        return jsonify({"message": "Missing required fields"}), 400
+    except Exception as e:
+        logger.error(f"Unexpected error during account creation: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": "An unexpected error occurred"}), 500
 
 
 @auth_bp.route('/update-password', methods=['POST'])
@@ -85,16 +119,27 @@ def update_password():
             sqlalchemy.exc.NoResultFound: If the user with the provided username does not exist.
             ValueError: If the current password does not match the stored password.
     """
-    data = request.get_json()
-    user = User.query.filter_by(username=data['username']).first()
+    try:
+        data = request.get_json()
+        logger.info(f"Password update attempt for username: {data.get('username')}")
 
-    if not user or not user.check_password(data['current_password']):
-        return jsonify({"message": "Invalid username or current password"}), 401
+        user = User.query.filter_by(username=data['username']).first()
+        if not user or not user.check_password(data['current_password']):
+            logger.warning(f"Password update failed - invalid credentials for username: {data.get('username')}")
+            return jsonify({"message": "Invalid username or current password"}), 401
 
-    user.set_password(data['new_password'])
-    db.session.commit()
+        user.set_password(data['new_password'])
+        db.session.commit()
 
-    return jsonify({"message": "Password updated successfully"}), 200
+        logger.info(f"Password updated successfully for user: {user.username}")
+        return jsonify({"message": "Password updated successfully"}), 200
+    except KeyError as e:
+        logger.error(f"Password update failed due to missing field: {str(e)}")
+        return jsonify({"message": "Missing required fields"}), 400
+    except Exception as e:
+        logger.error(f"Unexpected error during password update: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": "An unexpected error occurred"}), 500
 
 
 @auth_bp.route('/health', methods=['GET'])
@@ -105,4 +150,5 @@ def health_check():
     Returns:
         Response: A simple 'OK' message to indicate the application is running.
     """
+    logger.debug("Health check endpoint called")
     return jsonify({"status": "OK"}), 200
