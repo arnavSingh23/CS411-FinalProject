@@ -1,9 +1,12 @@
+import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from config import Config
 db = SQLAlchemy()
 migrate = Migrate()
+
+logger = logging.getLogger(__name__)
 
 
 def create_app():
@@ -21,12 +24,25 @@ def create_app():
          Exception: If any configuration or setup step fails (e.g., database connection issues).
      """
     app = Flask(__name__)
-    app.config.from_object(Config)
 
-    db.init_app(app)
-    migrate.init_app(app, db)
+    try:
+        logger.info("Starting app initialization...")
+        app.config.from_object(Config)
+        logger.info("Configuration loaded successfully.")
 
-    from app.routes import auth_bp
-    app.register_blueprint(auth_bp)
+        db.init_app(app)
+        logger.info("Database initialized successfully.")
+
+        migrate.init_app(app, db)
+        logger.info("Migrations setup completed.")
+
+        from app.routes import auth_bp
+        app.register_blueprint(auth_bp)
+        logger.info("Blueprints registered successfully.")
+
+        logger.info("App initialization completed.")
+    except Exception as e:
+        logger.error(f"Error during app initialization: {e}")
+        raise
 
     return app

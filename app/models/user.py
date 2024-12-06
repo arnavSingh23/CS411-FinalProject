@@ -1,6 +1,9 @@
+import logging
 import os
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+
+logger = logging.getLogger(__name__)
 
 
 class User(db.Model):
@@ -39,8 +42,13 @@ class User(db.Model):
                 A unique salt is generated using os.urandom() to ensure that even if two users have the same password,
                 their hashes will be different.
         """
-        self.salt = os.urandom(16).hex()
-        self.password_hash = generate_password_hash(password + self.salt)
+        try:
+            self.salt = os.urandom(16).hex()
+            self.password_hash = generate_password_hash(password + self.salt)
+            logger.info(f"Password set successfully for user: {self.username}")
+        except Exception as e:
+            logger.error(f"Error setting password for user: {self.username}. Exception: {e}")
+            raise
 
     def check_password(self, password):
         """
@@ -51,4 +59,13 @@ class User(db.Model):
             Returns:
                 bool: True if the password matches the stored hash, otherwise False.
         """
-        return check_password_hash(self.password_hash, password + self.salt)
+        try:
+            result = check_password_hash(self.password_hash, password + self.salt)
+            if result:
+                logger.info(f"Password check successful for user: {self.username}")
+            else:
+                logger.warning(f"Password check failed for user: {self.username}")
+            return result
+        except Exception as e:
+            logger.error(f"Error checking password for user: {self.username}. Exception: {e}")
+            raise
