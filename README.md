@@ -43,7 +43,7 @@ This application is developed using **Flask** for the backend, **SQLite** for th
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone <git@github.com:arnavSingh23/CS411-FinalProject.git>
 cd fitness-tracker
 ```
 
