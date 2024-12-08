@@ -15,9 +15,9 @@ This application is developed using **Flask** for the backend, **SQLite** for th
 * **Workout Tracking**
   * Log daily workouts and activities
   * Set and track fitness goals
-  * View progress using charts
+  * View progress using charts (❌)
 
-* **Exercise Recommendations**
+* **Exercise Recommendations (❌)** 
   * Fetch exercise recommendations from the wger Workout Manager API
   * Save favorite exercises or routines
 
@@ -151,45 +151,51 @@ docker run -p 5000:5000 --env-file .env fitness-tracker
 
 ### API Interaction Routes
 
-1. **Get Exercise Recommendations**
-   * **Route**: `/recommendations`
-   * **Method**: GET
-   * **Purpose**: Fetch exercise recommendations from the wger Workout Manager API based on user goals
-   * **Response Format**:
-```json
-{
-    "exercises": [
-        {
-            "id": 1,
-            "name": "Push-ups",
-            "description": "A bodyweight exercise for chest and arms"
-        }
-    ]
-}
-```
-
-2. **Log Workouts**
+1. **Log Workouts**
    * **Route**: `/log-workout`
    * **Method**: POST
    * **Purpose**: Log user workouts
    * **Request Format**:
-```json
-{
-    "user_id": "integer",
-    "exercise_id": "integer",
-    "reps": "integer",
-    "sets": "integer",
-    "date": "YYYY-MM-DD"
-}
-```
+   ```json
+   {
+       "user_id": "integer",
+       "exercise_id": "integer",
+       "repetitions": "integer",
+       "weight": "float",
+       "date": "YYYY-MM-DD",
+       "comment": "string"
+   }
+   ```
    * **Response Format**:
-```json
-{
-    "message": "Workout logged successfully"
-}
-```
+   ```json
+   {
+   "message": "Workout logged successfully"
+   }
 
-3. **View Progress**
+2. **View Workouts**
+   * **Route**: `/view-workouts`
+   * **Method**: GET
+   * **Purpose**: Retrieve all logged workouts for a user
+   * **Request Format**:
+   ```json
+   {
+       "user_id": "integer"
+   }
+   ```
+   * **Response Format**:
+   ```json
+   
+    {
+        "exercise_id": "integer",
+        "repetitions": "integer",
+        "weight": "float",
+        "date": "YYYY-MM-DD",
+        "comment": "string"
+    }
+   
+
+
+3. **View Progress ❌**
    * **Route**: `/progress`
    * **Method**: GET
    * **Purpose**: View fitness progress using charts
