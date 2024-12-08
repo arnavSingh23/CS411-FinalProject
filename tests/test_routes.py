@@ -89,3 +89,21 @@ def test_login_incorrect_password(test_client):
     })
     assert response.status_code == 401
     assert response.json['message'] == 'Invalid username or password'
+
+def test_log_workout(client):
+    response = client.post('/log-workout', json={
+        "user_id": 1,
+        "exercise_id": 101,
+        "repetitions": 10,
+        "weight": 20.5,
+        "date": "2024-12-07",
+        "comment": "Good session"
+    })
+    assert response.status_code == 201
+    assert response.json['status'] == "success"
+
+def test_view_workouts(client):
+    response = client.get('/view-workouts', query_string={"user_id": 1})
+    assert response.status_code == 200
+    assert response.json['status'] == "success"
+    assert len(response.json['workouts']) > 0

@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from app.models.user import User
+from app.models.workout import ExerciseLog
 from app import db
 from datetime import datetime, timedelta
 import jwt
 import os
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -152,3 +154,100 @@ def health_check():
     """
     logger.debug("Health check endpoint called")
     return jsonify({"status": "OK"}), 200
+
+@auth_bp.route('/get-exercises', methods=['GET'])
+def get_exercises():
+    """
+    Fetches a list of exercises from the wger Workout Manager API.
+
+    This function sends a GET request to the external wger API to retrieve a list of exercises.
+    The response is returned to the client in JSON format. If the request fails, an error 
+    message is returned with a 500 status code.
+
+    Returns:
+        Response: A Flask JSON response containing either:
+            - A list of exercises if the request is successful (status code 200).
+            - An error message if the request fails (status code 500).
+
+    Raises:
+        None: This function handles exceptions internally and logs errors if necessary.
+    """
+    url = 'https://wger.de/api/v2/exercise/'
+    response = requests.get(url, params={'language': 'en'})
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({"error": "Failed to fetch exercises"}), 500
+    
+@auth_bp.route('/log-workout', methods=['POST'])
+def log_workout():
+    """
+    Logs a workout entry for a user.
+    Expects JSON payload with:
+    - user_id (int): ID of the user.
+    - exercise_id (int): ID of the exercise (from Wger API).
+    - repetitions (int): Number of repetitions performed.
+    - weight (float, optional): Weight used in kilograms.
+    - date (str): Date of the workout in YYYY-MM-DD format.
+    - comment (str, optional): Additional comments.
+
+    Returns:
+        JSON response indicating success or failure.
+    """
+    data = request.get_json()
+    try:
+        new_entry = ExerciseLog(
+            user_id=data['user_id'],
+            exercise_id=data['exercise_id'],
+            repetitions=data['repetitions'],
+            weight=data.get('weight'),
+            date=datetime.strptime(data['date'], '%Y-%m-%d'),
+            comment=data.get('comment', '')
+        )
+        db.session.add(new_entry)
+        db.session.commit()
+        return jsonify({"status": "success", "message": "Workout logged successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+    
+@auth_bp.route('/view-workouts', methods=['GET'])
+def view_workouts():
+    """
+    Retrieves workout entries for a user.
+    Query parameters:
+    - user_id (int): ID of the user.
+    - start_date (str, optional): Filter workouts starting from this date.
+    - end_date (str, optional): Filter workouts up to this date.
+
+    Returns:
+        JSON response with the list of workout logs or an error message.
+    """
+    user_id = request.args.get('user_id')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    try:
+        query = ExerciseLog.query.filter_by(user_id=user_id)
+        if start_date:
+            query = query.filter(ExerciseLog.date >= datetime.strptime(start_date, '%Y-%m-%d'))
+        if end_date:
+            query = query.filter(ExerciseLog.date <= datetime.strptime(end_date, '%Y-%m-%d'))
+
+        workouts = query.all()
+        return jsonify({
+            "status": "success",
+            "workouts": [
+                {
+                    "id": workout.id,
+                    "exercise_id": workout.exercise_id,
+                    "repetitions": workout.repetitions,
+                    "weight": workout.weight,
+                    "date": workout.date.strftime('%Y-%m-%d'),
+                    "comment": workout.comment
+                }
+                for workout in workouts
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
