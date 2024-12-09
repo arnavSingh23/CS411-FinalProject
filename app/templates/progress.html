@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Progress Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Workout Progress</h1>
+    <canvas id="progressChart" width="400" height="200"></canvas>
+    <script>
+        // Fetch progress data from the API
+        fetch('/progress?user_id=1&metric=weight')  // Replace user_id and metric as needed
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    const ctx = document.getElementById('progressChart').getContext('2d');
+                    const progressChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.progress.labels, // Weekly labels
+                            datasets: [{
+                                label: 'Total Weight Lifted (kg)', // Change based on metric
+                                data: data.progress.data, // Aggregated data
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 2,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    console.error(data.message);
+                }
+            });
+    </script>
+</body>
+</html>

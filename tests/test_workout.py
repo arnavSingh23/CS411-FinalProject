@@ -1,5 +1,5 @@
 import pytest
-from app.models.workout import log_workout, get_workouts, workout_logs
+from app.models.workout import aggregate_workouts, log_workout, get_workouts, workout_logs
 
 def test_log_workout():
     """
@@ -54,3 +54,82 @@ def test_get_workouts():
     filtered_workouts = get_workouts(user_id, start_date="2024-12-08")
     assert len(filtered_workouts) == 1
     assert filtered_workouts[0]["exercise_id"] == 102
+
+def test_aggregate_workouts_weight():
+    """
+    Test aggregation of workouts by weight.
+    """
+    # Clear workout_logs to prevent interference
+    workout_logs.clear()
+
+    user_id = 1
+    # Log some workouts spanning two weeks
+    log_workout(user_id, 101, 10, 50.0, "2024-12-01", "Session 1")
+    log_workout(user_id, 102, 8, 70.0, "2024-12-02", "Session 2")
+    log_workout(user_id, 103, 15, 60.0, "2024-12-08", "Session 3")
+
+    # Aggregate by weight
+    progress = aggregate_workouts(user_id, metric="weight")
+
+    # Expected result
+    expected = {
+        "labels": ["2024-12-01", "2024-12-08"],
+        "data": [120.0, 60.0]  # Week 1 total: 50+70, Week 2 total: 60
+    }
+
+    assert progress == expected
+
+
+def test_aggregate_workouts_repetitions():
+    """
+    Test aggregation of workouts by repetitions.
+
+    This test verifies that the `aggregate_workouts` function correctly aggregates workout
+    data for a user by weeks and computes total repetitions for each week.
+
+    Asserts:
+        - Weekly labels are correctly generated.
+        - Aggregated data matches the expected totals.
+    """
+    # Clear workout_logs to prevent interference
+    workout_logs.clear()
+
+    user_id = 1
+    # Log some workouts spanning two weeks
+    log_workout(user_id, 101, 10, 50.0, "2024-12-01", "Session 1")
+    log_workout(user_id, 102, 20, 70.0, "2024-12-02", "Session 2")
+    log_workout(user_id, 103, 15, 60.0, "2024-12-08", "Session 3")
+
+    # Aggregate by repetitions
+    progress = aggregate_workouts(user_id, metric="repetitions")
+
+    # Expected result
+    expected = {
+        "labels": ["2024-12-01", "2024-12-08"],
+        "data": [30, 15]  # Week 1 total: 10+20, Week 2 total: 15
+    }
+
+    assert progress == expected
+
+def test_aggregate_workouts_empty():
+    """
+    Test aggregation of workouts when there is no data.
+
+    This test ensures that `aggregate_workouts` handles the case where no workouts exist for the user.
+
+    Asserts:
+        - Returned labels and data are empty.
+    """
+    # Clear workout_logs to prevent interference
+    workout_logs.clear()
+
+    user_id = 2  # User with no logged workouts
+    progress = aggregate_workouts(user_id)
+
+    # Expected result
+    expected = {
+        "labels": [],
+        "data": []
+    }
+
+    assert progress == expected

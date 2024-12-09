@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -65,3 +66,36 @@ def get_workouts(user_id, start_date=None, end_date=None):
         return filtered_workouts
 
     return workouts
+
+def aggregate_workouts(user_id, metric="weight"):
+    if user_id not in workout_logs or not workout_logs[user_id]:
+        return {"labels": [], "data": []}
+
+    # Get user workouts
+    workouts = workout_logs[user_id]
+
+    # Sort workouts by date
+    workouts.sort(key=lambda x: datetime.strptime(x["date"], "%Y-%m-%d"))
+
+    weekly_totals = defaultdict(float)
+    weekly_labels = []
+
+    current_week_start = None
+    for workout in workouts:
+        workout_date = datetime.strptime(workout["date"], "%Y-%m-%d")
+
+        # Align week start to Sunday
+        week_start = workout_date - timedelta(days=(workout_date.isoweekday() % 7))
+
+        # If this is the first workout or we have moved to a new week, update current_week_start
+        if current_week_start is None or week_start != current_week_start:
+            current_week_start = week_start
+            weekly_labels.append(current_week_start.strftime("%Y-%m-%d"))
+
+        weekly_totals[current_week_start] += workout[metric]
+
+    labels = weekly_labels
+    data = [weekly_totals[datetime.strptime(label, "%Y-%m-%d")] for label in labels]
+
+    return {"labels": labels, "data": data}
+
