@@ -1,6 +1,8 @@
 import unittest
 from app import create_app, db
 from app.models.user import User
+from app.models.workout import log_workout
+from datetime import datetime
 
 class SmokeTest(unittest.TestCase):
     """
@@ -17,7 +19,7 @@ class SmokeTest(unittest.TestCase):
         cls.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  
         cls.app_context = cls.app.app_context()
         cls.app_context.push()
-        db.create_all()  # create all the list
+        db.create_all()  # create all the tables
         cls.client = cls.app.test_client()
 
     @classmethod
@@ -63,13 +65,13 @@ class SmokeTest(unittest.TestCase):
         """
         Test if the login route is working.
         """
-        # create an user
+        # Create a test user
         user = User(username="testlogin")
         user.set_password("password123")
         db.session.add(user)
         db.session.commit()
 
-        # test logging API
+        # Test login API
         response = self.client.post('/login', json={
             "username": "testlogin",
             "password": "password123"
@@ -82,13 +84,13 @@ class SmokeTest(unittest.TestCase):
         """
         Test if a workout entry can be logged.
         """
-        # create test user
+        # Create a test user
         user = User(username="workoutuser")
         user.set_password("password123")
         db.session.add(user)
         db.session.commit()
 
-        # test record workout API
+        # Test record workout API
         response = self.client.post('/log-workout', json={
             "user_id": user.id,
             "exercise_id": 10,
@@ -104,24 +106,23 @@ class SmokeTest(unittest.TestCase):
         """
         Test if workout logs can be viewed.
         """
-        # test create user and record 
+        # Create a test user
         user = User(username="viewuser")
         user.set_password("password123")
         db.session.add(user)
         db.session.commit()
 
-        log = ExerciseLog(
+        # Log a workout directly
+        log_workout(
             user_id=user.id,
             exercise_id=10,
             repetitions=15,
             weight=50.0,
-            date="2024-12-07",
+            date=str(datetime.now().date()),
             comment="Test log"
         )
-        db.session.add(log)
-        db.session.commit()
 
-        # view record API
+        # Test view workouts API
         response = self.client.get('/view-workouts', query_string={"user_id": user.id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["status"], "success")

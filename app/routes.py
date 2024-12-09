@@ -299,4 +299,11 @@ def progress_page():
     Renders the progress chart page.
     """
     return render_template("progress.html")
-   
+
+@auth_bp.route('/', methods=['GET'])
+def home():
+    """
+    Default route to provide a homepage or redirect to a relevant route.
+    """
+    return jsonify({"message": "Welcome to the CS411 Final Project API"}), 200
+
