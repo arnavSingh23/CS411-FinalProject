@@ -258,7 +258,7 @@ The page fetches data from the `/progress` API in the background via JavaScript 
 }
 ```
 
-5. **Excercise Recommendandations**
+6. **Excercise Recommendandations**
 
 **Route:** `/recommendations`  
 **Method:** `GET`  
