@@ -257,3 +257,48 @@ The page fetches data from the `/progress` API in the background via JavaScript 
     "status": "OK"
 }
 ```
+
+5. **Excercise Recommendandations**
+
+**Route:** `/recommendations`  
+**Method:** `GET`  
+**Purpose:**  
+Retrieve exercise recommendations from the Wger Workout Manager API based on specified filters for category and equipment.
+
+#### Query Parameters:  
+| Parameter   | Type   | Required | Description                                |
+|-------------|--------|----------|--------------------------------------------|
+| `category`  | `str`  | No       | Filter exercises by category ID.           |
+| `equipment` | `str`  | No       | Filter exercises by equipment ID.          |
+
+#### Example Request:  
+```bash
+curl "http://127.0.0.1:5000/recommendations?category=4&equipment=7"
+```
+#### Response Format:
+```json
+{
+    "status": "success",
+    "exercises": [
+        {
+            "id": 1,
+            "name": "Push-ups",
+            "description": "An effective chest exercise."
+        },
+        {
+            "id": 2,
+            "name": "Squats",
+            "description": "A powerful lower-body workout."
+        }
+    ]
+}
+```
+
+---
+
+#### Expected Behavior:
+- The API fetches exercise data from the Wger Workout Manager API based on the provided category and equipment filters.
+- If the API call is successful, a list of exercises is returned in JSON format.
+- If the API call fails, an error message with status code 500 is returned.
+
+
