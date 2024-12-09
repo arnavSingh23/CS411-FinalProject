@@ -195,19 +195,59 @@ docker run -p 5000:5000 --env-file .env fitness-tracker
    
 
 
-3. **View Progress ❌**
-   * **Route**: `/progress`
-   * **Method**: GET
-   * **Purpose**: View fitness progress using charts
-   * **Response Format**:
+3. **View Progress**
+**Route:** `/progress`  
+**Method:** `GET`
+
+**Purpose:**  
+Retrieve workout data for a user, grouped by weeks, and calculate the total metric (e.g., weight or repetitions) for visualization.
+
+#### Query Parameters:
+| Parameter   | Type   | Required | Description                                |
+|-------------|--------|----------|--------------------------------------------|
+| `user_id`   | `int`  | Yes      | The ID of the user.                        |
+| `metric`    | `str`  | No       | Metric to compute (weight or repetitions). Default is `weight`.
+
+#### Example Request:
+```bash
+curl "http://127.0.0.1:5000/progress?user_id=1&metric=weight"
+```
+
+#### Response Format:
 ```json
 {
-    "labels": ["Week 1", "Week 2"],
-    "data": [20, 30]
+    "status": "success",
+    "progress": {
+        "labels": ["2024-12-01", "2024-12-08"],
+        "data": [150, 200]
+    }
 }
 ```
 
-4. **Health Check**
+---
+
+4. **View Progress Page**
+**Route:** `/progress-page`  
+**Method:** `GET`
+
+**Purpose:**  
+Render a web page to visualize workout progress using a chart.
+
+#### Example URL:
+```
+http://127.0.0.1:5000/progress-page
+```
+
+#### Expected Behavior:
+- The web page displays a line chart where:
+  - **X-axis:** Weekly labels (e.g., "2024-12-01", "2024-12-08").
+  - **Y-axis:** Aggregated metric values (e.g., weight or repetitions).
+- The data is fetched dynamically from the `/progress` API using JavaScript.
+
+#### Required Data:
+The page fetches data from the `/progress` API in the background via JavaScript and renders the chart using [Chart.js](https://www.chartjs.org/).
+
+5. **Health Check**
    * **Route**: `/health`
    * **Method**: GET
    * **Purpose**: Verify the app is running
