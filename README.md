@@ -111,7 +111,26 @@ docker run -p 5000:5000 --env-file .env fitness-tracker
     "token": "jwt-token-string"
 }
 ```
-
+* **Error Response**:
+  
+* **Status**: 401 Unauthorized
+ ```json
+ {
+   "message": "Invalid username or password"
+ }
+ ```
+  * **Status**: 400 Bad Request
+ ```json
+ {
+   "message": "Missing required fields"
+ }
+ ```
+  * **Status** 500 Interal Server Error
+```json
+{
+   "message": "An unexpected error occurred"
+}
+```
 2. **Create Account**
    * **Route**: `/create-account`
    * **Method**: POST
@@ -127,6 +146,26 @@ docker run -p 5000:5000 --env-file .env fitness-tracker
 ```json
 {
     "message": "Account created successfully"
+}
+```
+* **Error Response**:
+  
+* **Status**: 400 Bad Request
+ ```json
+ {
+   "message": "Username already exists"
+ }
+ ```
+  * **Status**: 400 Bad Request
+ ```json
+ {
+   "message": "Missing required fields"
+ }
+ ```
+  * **Status** 500 Interal Server Error
+```json
+{
+   "message": "An unexpected error occurred"
 }
 ```
 
@@ -146,6 +185,38 @@ docker run -p 5000:5000 --env-file .env fitness-tracker
 ```json
 {
     "message": "Password updated successfully"
+}
+```
+* **Error Response**:
+  
+* **Status**: 401 Unauthorized
+ ```json
+ {
+   "message": "Invalid username or current password"
+ }
+ ```
+  * **Status**: 400 Bad Request
+ ```json
+ {
+   "message": "Missing required fields"
+ }
+ ```
+  * **Status** 500 Interal Server Error
+```json
+{
+   "message": "An unexpected error occurred"
+}
+```
+### Health Check Route
+
+ * **Route**: `/health`
+   * **Method**: GET
+   * **Purpose**: Health check route to verify the app is running
+
+ * **Response Format**:
+```json
+{
+    "status": "OK"
 }
 ```
 
