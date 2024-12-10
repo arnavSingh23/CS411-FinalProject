@@ -1,6 +1,7 @@
 venv/
 __pycache__/
 *.pyc
+# Re-add .env
 .env
 *.db
 .idea/
