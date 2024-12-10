@@ -6,8 +6,8 @@ import jwt
 import os
 import logging
 import requests
-from app.models.recommendations import fetch_exercises
-from app.models.workout import aggregate_workouts, log_workout, get_workouts
+from app.models.recommendations import fetch_exercises, get_favorite_exercises, save_favorite_exercise
+from app.models.workout import log_workout, get_workouts
 
 
 logger = logging.getLogger(__name__)
@@ -263,12 +263,62 @@ def get_recommendations_route():
         logger.error(f"Error fetching recommendations: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
     
-@auth_bp.route('/progress-page', methods=['GET'])
-def progress_page():
+@auth_bp.route('/favorites', methods=['POST'])
+def add_favorite_exercise():
     """
-    Renders the progress chart page.
+    Save a favorite exercise for a user.
+
+    Expects JSON payload with:
+    - user_id (int): The ID of the user.
+    - exercise_id (int): The ID of the exercise from the API.
+    - name (str): The name of the exercise.
+    - description (str, optional): Description of the exercise.
+
+    Returns:
+        JSON response indicating success or error in saving the exercise.
     """
-    return render_template("progress.html")
+    data = request.get_json()
+    user_id = data.get("user_id")
+    exercise_id = data.get("exercise_id")
+    name = data.get("name")
+    description = data.get("description", "")
+
+    if not user_id or not exercise_id or not name:
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+    try:
+        favorite = save_favorite_exercise(user_id=user_id, exercise_id=exercise_id, name=name, description=description)
+        if "message" in favorite and favorite["message"] == "Exercise already exists in favorites":
+            return jsonify({"status": "error", "message": favorite["message"]}), 400
+
+        return jsonify({"status": "success", "favorite": favorite}), 201
+    except Exception as e:
+        logger.error(f"Error saving favorite exercise: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@auth_bp.route('/favorites', methods=['GET'])
+def list_favorite_exercises():
+    """
+    Retrieve all favorite exercises for a user.
+
+    Query Parameters:
+    - user_id (int): The ID of the user.
+
+    Returns:
+        JSON response with the list of favorite exercises or an error message.
+    """
+    user_id = request.args.get("user_id", type=int)
+    if not user_id:
+        return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    try:
+        favorites = get_favorite_exercises(user_id=user_id)
+        return jsonify({"status": "success", "favorites": favorites}), 200
+    except Exception as e:
+        logger.error(f"Error retrieving favorite exercises: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
 
 @auth_bp.route('/', methods=['GET'])
 def home():

@@ -181,3 +181,61 @@ def test_get_recommendations_failure(mock_fetch_exercises, test_client):
     assert response.status_code == 500
     assert response.json['status'] == "error"
     assert "API error" in response.json['message']
+
+def test_save_exercise_success(test_client):
+    """
+    Test successful saving of a favorite exercise.
+    """
+    payload = {
+        "user_id": 1,
+        "exercise_id": 101,
+        "name": "Push-ups",
+        "description": "Chest exercise"
+    }
+    response = test_client.post('/save-exercise', json=payload)
+    assert response.status_code == 201
+    assert response.json['status'] == "success"
+    assert response.json['message'] == "Exercise saved successfully"
+
+
+def test_save_exercise_missing_fields(test_client):
+    """
+    Test failure when required fields are missing for saving an exercise.
+    """
+    payload = {
+        "user_id": 1,
+        "name": "Push-ups"
+    }  # Missing 'exercise_id'
+    response = test_client.post('/save-exercise', json=payload)
+    assert response.status_code == 400
+    assert response.json['status'] == "error"
+    assert "Missing required field" in response.json['message']
+
+
+def test_get_favorites_success(test_client):
+    """
+    Test successful retrieval of favorite exercises.
+    """
+    # Pre-save a favorite exercise
+    test_client.post('/save-exercise', json={
+        "user_id": 1,
+        "exercise_id": 101,
+        "name": "Push-ups",
+        "description": "Chest exercise"
+    })
+
+    response = test_client.get('/get-favorites', query_string={"user_id": 1})
+    assert response.status_code == 200
+    assert response.json['status'] == "success"
+    assert len(response.json['favorites']) == 1
+    assert response.json['favorites'][0]['name'] == "Push-ups"
+
+
+def test_get_favorites_no_data(test_client):
+    """
+    Test retrieving favorites when none are saved.
+    """
+    response = test_client.get('/get-favorites', query_string={"user_id": 2})  # User 2 has no favorites
+    assert response.status_code == 200
+    assert response.json['status'] == "success"
+    assert len(response.json['favorites']) == 0
