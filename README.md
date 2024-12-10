@@ -15,9 +15,9 @@ This application is developed using **Flask** for the backend, **SQLite** for th
 * **Workout Tracking**
   * Log daily workouts and activities
   * Set and track fitness goals
-  * View progress using charts (❌)
+  * View progress using charts
 
-* **Exercise Recommendations (❌)** 
+* Exercise Recommendations 
   * Fetch exercise recommendations from the wger Workout Manager API
   * Save favorite exercises or routines
 
