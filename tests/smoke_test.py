@@ -1,132 +1,89 @@
-import unittest
-from app import create_app, db
-from app.models.user import User
-from app.models.workout import log_workout
-from datetime import datetime
+import requests
 
-class SmokeTest(unittest.TestCase):
-    """
-    Smoke tests to ensure the basic functionality of the app is working.
-    """
+BASE_URL = "http://localhost:5000"
 
-    @classmethod
-    def setUpClass(cls):
-        """
-        Set up the Flask test client and test database.
-        """
-        cls.app = create_app()
-        cls.app.config['TESTING'] = True
-        cls.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  
-        cls.app_context = cls.app.app_context()
-        cls.app_context.push()
-        db.create_all()  # create all the tables
-        cls.client = cls.app.test_client()
+def test_health_check():
+    """Check if the health endpoint is working."""
+    response = requests.get(f"{BASE_URL}/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "OK"}
 
-    @classmethod
-    def tearDownClass(cls):
-        """
-        Tear down the test environment.
-        """
-        db.session.remove()
-        db.drop_all()
-        cls.app_context.pop()
 
-    def test_app_health_check(self):
-        """
-        Test if the health check route is accessible.
-        """
-        response = self.client.get('/health')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"status": "OK"})
+def test_create_account():
+    """Test creating a new user account."""
+    response = requests.post(f"{BASE_URL}/create-account", json={
+        "username": "smoketestuser",
+        "password": "testpassword123"
+    })
+    assert response.status_code == 201
+    assert response.json()["message"] == "Account created successfully"
 
-    def test_database_connection(self):
-        """
-        Test if the database connection is working.
-        """
-        try:
-            db.session.execute('SELECT 1')
-        except Exception as e:
-            self.fail(f"Database connection failed: {e}")
 
-    def test_user_creation(self):
-        """
-        Test if a new user can be created.
-        """
-        user = User(username="testuser")
-        user.set_password("password123")
-        db.session.add(user)
-        db.session.commit()
+def test_login():
+    """Test logging in with a valid account."""
+    response = requests.post(f"{BASE_URL}/login", json={
+        "username": "smoketestuser",
+        "password": "testpassword123"
+    })
+    assert response.status_code == 200
+    assert response.json()["message"] == "Login successful"
 
-        fetched_user = User.query.filter_by(username="testuser").first()
-        self.assertIsNotNone(fetched_user)
-        self.assertTrue(fetched_user.check_password("password123"))
 
-    def test_user_login_route(self):
-        """
-        Test if the login route is working.
-        """
-        # Create a test user
-        user = User(username="testlogin")
-        user.set_password("password123")
-        db.session.add(user)
-        db.session.commit()
+def test_update_password():
+    """Test updating the password for the test user."""
+    response = requests.post(f"{BASE_URL}/update-password", json={
+        "username": "smoketestuser",
+        "current_password": "testpassword123",
+        "new_password": "newtestpassword123"
+    })
+    assert response.status_code == 200
+    assert response.json()["message"] == "Password updated successfully"
 
-        # Test login API
-        response = self.client.post('/login', json={
-            "username": "testlogin",
-            "password": "password123"
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("message", response.json)
-        self.assertEqual(response.json["message"], "Login successful")
 
-    def test_workout_logging(self):
-        """
-        Test if a workout entry can be logged.
-        """
-        # Create a test user
-        user = User(username="workoutuser")
-        user.set_password("password123")
-        db.session.add(user)
-        db.session.commit()
+def test_log_workout():
+    """Test logging a workout."""
+    response = requests.post(f"{BASE_URL}/log-workout", json={
+        "user_id": 1,
+        "exercise_id": 101,
+        "repetitions": 12,
+        "weight": 25.0,
+        "date": "2024-12-10",
+        "comment": "Smoketest session"
+    })
+    assert response.status_code == 201
+    assert response.json()["status"] == "success"
 
-        # Test record workout API
-        response = self.client.post('/log-workout', json={
-            "user_id": user.id,
-            "exercise_id": 10,
-            "repetitions": 15,
-            "weight": 50.0,
-            "date": "2024-12-07",
-            "comment": "Great workout!"
-        })
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json["status"], "success")
 
-    def test_view_workouts(self):
-        """
-        Test if workout logs can be viewed.
-        """
-        # Create a test user
-        user = User(username="viewuser")
-        user.set_password("password123")
-        db.session.add(user)
-        db.session.commit()
+def test_view_workouts():
+    """Test viewing workouts for a user."""
+    response = requests.get(f"{BASE_URL}/view-workouts", params={"user_id": 1})
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert len(response.json()["workouts"]) > 0  # Ensure at least one workout is logged
 
-        # Log a workout directly
-        log_workout(
-            user_id=user.id,
-            exercise_id=10,
-            repetitions=15,
-            weight=50.0,
-            date=str(datetime.now().date()),
-            comment="Test log"
-        )
 
-        # Test view workouts API
-        response = self.client.get('/view-workouts', query_string={"user_id": user.id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["status"], "success")
-        self.assertGreater(len(response.json["workouts"]), 0)
+def test_recommendations():
+    """Test fetching exercise recommendations."""
+    response = requests.get(f"{BASE_URL}/recommendations?category=4&equipment=7")
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert len(response.json()["exercises"]) > 0  # Ensure exercises are returned
 
-if __name__ == '__main__':
-    unittest.main()
+
+if __name__ == "__main__":
+    print("Starting Smoke Test...")
+    test_health_check()
+    print("Health Check Passed!")
+    test_create_account()
+    print("Create Account Passed!")
+    test_login()
+    print("Login Passed!")
+    test_update_password()
+    print("Update Password Passed!")
+    test_log_workout()
+    print("Log Workout Passed!")
+    test_view_workouts()
+    print("View Workouts Passed!")
+    test_recommendations()
+    print("Recommendations Passed!")
+    print("All Smoke Tests Passed!")

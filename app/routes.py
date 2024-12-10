@@ -262,36 +262,6 @@ def get_recommendations_route():
     except Exception as e:
         logger.error(f"Error fetching recommendations: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-@auth_bp.route('/progress', methods=['GET'])
-def view_progress():
-    """
-    API Endpoint to view workout progress aggregated by week.
-
-    Query Parameters:
-    - user_id (int): ID of the user.
-    - metric (str, optional): Metric to compute ("weight" or "repetitions"). Default is "weight".
-
-    Returns:
-        JSON response with weekly labels and aggregated values for the given metric.
-    """
-    user_id = request.args.get("user_id")
-    metric = request.args.get("metric", "weight")  # Default to "weight"
-
-    if not user_id:
-        return jsonify({"status": "error", "message": "Missing user_id"}), 400
-
-    if metric not in ["weight", "repetitions"]:
-        return jsonify({"status": "error", "message": "Invalid metric"}), 400
-
-    try:
-        # Aggregate the workout data
-        progress = aggregate_workouts(user_id=int(user_id), metric=metric)
-
-        return jsonify({"status": "success", "progress": progress}), 200
-    except Exception as e:
-        logger.error(f"Error in view_progress: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
     
 @auth_bp.route('/progress-page', methods=['GET'])
 def progress_page():

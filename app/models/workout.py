@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime, timedelta
-from collections import defaultdict
+from datetime import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -51,51 +51,25 @@ def get_workouts(user_id, start_date=None, end_date=None):
         list: A list of workout entries.
     """
     if user_id not in workout_logs:
+        logger.info(f"Retrieved {len(workouts)} workouts for user {user_id}")
         return []
 
     workouts = workout_logs[user_id]
+    logger.info(f"Retrieved {len(workouts)} workouts for user {user_id}")
+
     if start_date or end_date:
         start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
         end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
+        logger.debug(f"Filtering workouts for user {user_id} from {start_date} to {end_date}")
 
         filtered_workouts = [
             workout for workout in workouts
             if (not start or datetime.strptime(workout["date"], "%Y-%m-%d") >= start) and
                (not end or datetime.strptime(workout["date"], "%Y-%m-%d") <= end)
         ]
+        logger.info(f"Filtered workouts for user {user_id}: {len(filtered_workouts)} entries")
         return filtered_workouts
 
     return workouts
 
-def aggregate_workouts(user_id, metric="weight"):
-    if user_id not in workout_logs or not workout_logs[user_id]:
-        return {"labels": [], "data": []}
-
-    # Get user workouts
-    workouts = workout_logs[user_id]
-
-    # Sort workouts by date
-    workouts.sort(key=lambda x: datetime.strptime(x["date"], "%Y-%m-%d"))
-
-    weekly_totals = defaultdict(float)
-    weekly_labels = []
-
-    current_week_start = None
-    for workout in workouts:
-        workout_date = datetime.strptime(workout["date"], "%Y-%m-%d")
-
-        # Align week start to Sunday
-        week_start = workout_date - timedelta(days=(workout_date.isoweekday() % 7))
-
-        # If this is the first workout or we have moved to a new week, update current_week_start
-        if current_week_start is None or week_start != current_week_start:
-            current_week_start = week_start
-            weekly_labels.append(current_week_start.strftime("%Y-%m-%d"))
-
-        weekly_totals[current_week_start] += workout[metric]
-
-    labels = weekly_labels
-    data = [weekly_totals[datetime.strptime(label, "%Y-%m-%d")] for label in labels]
-
-    return {"labels": labels, "data": data}
 

@@ -44,5 +44,7 @@ def create_app():
     except Exception as e:
         logger.error(f"Error during app initialization: {e}")
         raise
+    finally:
+        logger.info("Shutting down the Flask application.")
 
     return app
