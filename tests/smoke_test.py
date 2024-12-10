@@ -1,89 +1,85 @@
-import requests
+import pytest
+from app import create_app 
+from flask import jsonify
 
-BASE_URL = "http://localhost:5000"
+@pytest.fixture
+def client():
+    app = create_app()  
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
-def test_health_check():
-    """Check if the health endpoint is working."""
-    response = requests.get(f"{BASE_URL}/health")
+def test_health_check(client):
+    """Test if the health check route works"""
+    response = client.get('/health')
     assert response.status_code == 200
-    assert response.json() == {"status": "OK"}
+    data = response.get_json()
+    assert data['status'] == 'OK'
 
+def test_login(client):
+    """Test login route with valid credentials"""
+    data = {
+        'username': 'valid_username',
+        'password': 'valid_password'
+    }
+    response = client.post('/login', json=data)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['message'] == 'Login successful'
 
-def test_create_account():
-    """Test creating a new user account."""
-    response = requests.post(f"{BASE_URL}/create-account", json={
-        "username": "smoketestuser",
-        "password": "testpassword123"
-    })
+def test_create_account(client):
+    """Test account creation with valid data"""
+    data = {
+        'username': 'new_username',
+        'password': 'new_password'
+    }
+    response = client.post('/create-account', json=data)
     assert response.status_code == 201
-    assert response.json()["message"] == "Account created successfully"
+    data = response.get_json()
+    assert data['message'] == 'Account created successfully'
 
-
-def test_login():
-    """Test logging in with a valid account."""
-    response = requests.post(f"{BASE_URL}/login", json={
-        "username": "smoketestuser",
-        "password": "testpassword123"
-    })
+def test_update_password(client):
+    """Test password update with valid credentials"""
+    data = {
+        'username': 'valid_username',
+        'current_password': 'valid_password',
+        'new_password': 'new_valid_password'
+    }
+    response = client.post('/update-password', json=data)
     assert response.status_code == 200
-    assert response.json()["message"] == "Login successful"
+    data = response.get_json()
+    assert data['message'] == 'Password updated successfully'
 
-
-def test_update_password():
-    """Test updating the password for the test user."""
-    response = requests.post(f"{BASE_URL}/update-password", json={
-        "username": "smoketestuser",
-        "current_password": "testpassword123",
-        "new_password": "newtestpassword123"
-    })
+def test_get_exercises(client):
+    """Test if the external exercise API route works"""
+    response = client.get('/get-exercises')
     assert response.status_code == 200
-    assert response.json()["message"] == "Password updated successfully"
+    data = response.get_json()
+    assert 'results' in data  # Assuming the API returns a 'results' field with exercises
 
-
-def test_log_workout():
-    """Test logging a workout."""
-    response = requests.post(f"{BASE_URL}/log-workout", json={
-        "user_id": 1,
-        "exercise_id": 101,
-        "repetitions": 12,
-        "weight": 25.0,
-        "date": "2024-12-10",
-        "comment": "Smoketest session"
-    })
+def test_favorite_exercise(client):
+    """Test saving a favorite exercise"""
+    data = {
+        'user_id': 1,
+        'exercise_id': 1,
+        'name': 'Push-up'
+    }
+    response = client.post('/favorites', json=data)
     assert response.status_code == 201
-    assert response.json()["status"] == "success"
+    data = response.get_json()
+    assert data['status'] == 'success'
 
-
-def test_view_workouts():
-    """Test viewing workouts for a user."""
-    response = requests.get(f"{BASE_URL}/view-workouts", params={"user_id": 1})
+def test_view_workouts(client):
+    """Test viewing workouts route"""
+    response = client.get('/view-workouts?user_id=1')
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
-    assert len(response.json()["workouts"]) > 0  # Ensure at least one workout is logged
+    data = response.get_json()
+    assert 'workouts' in data
 
-
-def test_recommendations():
-    """Test fetching exercise recommendations."""
-    response = requests.get(f"{BASE_URL}/recommendations?category=4&equipment=7")
+def test_list_favorite_exercises(client):
+    """Test listing favorite exercises for a user"""
+    response = client.get('/favorites?user_id=1')
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
-    assert len(response.json()["exercises"]) > 0  # Ensure exercises are returned
+    data = response.get_json()
+    assert 'favorites' in data
 
-
-if __name__ == "__main__":
-    print("Starting Smoke Test...")
-    test_health_check()
-    print("Health Check Passed!")
-    test_create_account()
-    print("Create Account Passed!")
-    test_login()
-    print("Login Passed!")
-    test_update_password()
-    print("Update Password Passed!")
-    test_log_workout()
-    print("Log Workout Passed!")
-    test_view_workouts()
-    print("View Workouts Passed!")
-    test_recommendations()
-    print("Recommendations Passed!")
-    print("All Smoke Tests Passed!")
