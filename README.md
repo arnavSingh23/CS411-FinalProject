@@ -289,28 +289,11 @@ Retrieve exercise recommendations from the Wger Workout Manager API based on spe
 | `category`  | `str`  | No       | Filter exercises by category ID.           |
 | `equipment` | `str`  | No       | Filter exercises by equipment ID.          |
 
-#### Example Request:  
+#### Request Format:  
 ```bash
 curl "http://127.0.0.1:5000/recommendations?category=4&equipment=7"
 ```
-#### Response Format:
-```json
-{
-    "status": "success",
-    "exercises": [
-        {
-            "id": 1,
-            "name": "Push-ups",
-            "description": "An effective chest exercise."
-        },
-        {
-            "id": 2,
-            "name": "Squats",
-            "description": "A powerful lower-body workout."
-        }
-    ]
-}
-```
+≈
 
 ---
 
@@ -319,4 +302,62 @@ curl "http://127.0.0.1:5000/recommendations?category=4&equipment=7"
 - If the API call is successful, a list of exercises is returned in JSON format.
 - If the API call fails, an error message with status code 500 is returned.
 
+5. **Save Exercise**
+**Route:** `/save-exercise`  
+**Method:** `POST`  
+**Purpose:**  
+Allow users to save favorite exercises into an in-memory dictionary for future access.
+
+#### Query Parameters:  
+| Parameter     | Type   | Required | Description                                |
+|---------------|--------|----------|--------------------------------------------|
+| `user_id`     | `int`  | Yes      | The ID of the user saving the exercise.    |
+| `exercise_id` | `int`  | Yes      | The ID of the exercise being saved.        |
+| `name`        | `str`  | Yes      | The name of the exercise.                  |
+| `description` | `str`  | No       | A description of the exercise.             |
+
+
+   * **Request Format**:
+   ```json
+
+ {
+    "user_id": 1,
+    "exercise_id": 101,
+    "name": "Push-ups",
+    "description": "An exercise for chest and triceps."
+}
+```
+  * **Response Format**:
+```json
+   
+    {
+        "exercise_id": "integer",
+        "repetitions": "integer",
+        "weight": "float",
+        "date": "YYYY-MM-DD",
+        "comment": "string"
+    }
+   ```
+   #### Expected Behavior:
+- This route allows users to save specific exercises as favorites.
+- Users must provide their user_id and details of the exercise to be saved.
+- If successful, a confirmation message is returned.
+- If an error occurs, a status code with a corresponding error message is returned.
+
+* **Error Response**:
+  
+* **Status**: Status Code 400
+ ```json
+ {
+   "message": "Missing required fields in the request."
+ }
+ ```
+  * **Status**: Status Code 500
+ ```json
+ {
+   "message": "An unexpected error occurred."
+ }
+ ```
+
+   
 
